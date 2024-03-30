@@ -1,2 +1,9 @@
 /.venv/
+/data/shape/
 .env
+*.grib
+*.grib2
+*.idx
+*.o
+/.idea/
+/.vscode/
