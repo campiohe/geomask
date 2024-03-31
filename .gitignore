@@ -7,3 +7,6 @@
 *.o
 /.idea/
 /.vscode/
+shape_1/
+*.pkl
+__pycache__/

@@ -8,8 +8,9 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 numpy = "^1.26.4"
+shapely = "^2.0.3"
 xarray = "^2024.2.0"
-
+scipy = "^1.13.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
@@ -22,3 +23,6 @@ matplotlib = "^3.8.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+length=120
