@@ -1,2 +1,12 @@
 /.venv/
+/data/shape/
 .env
+*.grib
+*.grib2
+*.idx
+*.o
+/.idea/
+/.vscode/
+shape_1/
+*.pkl
+__pycache__/
