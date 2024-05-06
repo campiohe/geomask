@@ -12,6 +12,15 @@ class MaskError(Exception):
 
 
 class Masker:
+    """
+    Create a dataset of points within a specified polygon or multipolygon.
+
+    This class is designed to generate a virtual mesh around a given polygon (or multipolygon)
+    with a specified resolution and then calculate which points from the mesh fall inside the polygon.
+
+    The resulting dataset can be used for various purposes, such as clipping globe datasets to
+    a specific geographic area.
+    """
 
     @staticmethod
     def mask(poly: Polygon | MultiPolygon, mesh_resolution: float = 0.1) -> xr.Dataset:
@@ -33,7 +42,7 @@ class Masker:
 
         if isinstance(mesh_points_poly, Point):
             if mesh_points_poly.is_empty:
-                raise MaskError
+                raise MaskError(f"mesh {mesh_resolution} has no points inside! try a smaller resolution")
             points_in_poly = [(mesh_points_poly.x, mesh_points_poly.y)]
         else:
             points_in_poly = list(map(lambda p: (p.x, p.y), mesh_points_poly.geoms))
@@ -50,9 +59,7 @@ class Masker:
         )
         mask[lat_indices, lon_indices] = 1
 
-        mask_ds = xr.Dataset(
+        return xr.Dataset(
             data_vars={"mask": (("latitude", "longitude"), mask)},
             coords={"latitude": unique_latitude, "longitude": unique_longitude},
         )
-
-        return mask_ds
