@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from shapely import Polygon
 
-from src.masker import Masker
+from src.masker import create_mask_dataset
 
 
 @pytest.mark.parametrize(
@@ -63,5 +63,5 @@ from src.masker import Masker
     ],
 )
 def test_masker(polygon, resolution, expected_mask):
-    ds = Masker.mask(Polygon(polygon), resolution)
-    assert np.all(np.array(expected_mask, dtype=np.bool_) == ds.mask.values)
+    ds = create_mask_dataset(Polygon(polygon), resolution)
+    assert np.array_equal(np.array(expected_mask, dtype=np.bool_), ds.mask.values)

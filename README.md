@@ -1,13 +1,14 @@
-# geo-mask
+# Geo-Mask
 
-Is a python-based repository that provides a set of tools for point-clipping and shape-based masking of geospatial datasets.
+Is a python-based module that provides tools for point-clipping and shape-based masking of geospatial datasets.
 The core focus is on using `numpy`, `xarray`, and `shapely` to enable efficient spatial data operations.
-These tools are useful for geospatial data analysis, allowing clip and mask datasets based on geometric shapes.
 
-## usage
+## Usage
+
 ```python
-from src.masker import Masker
+from masker import create_mask_dataset
 
-masked_dataset = Masker.mask(polygon, 0.25)
+ds: xr.Dataset = create_mask_dataset(polygon, mesh_resolution=0.25)
 ```
+
 ![](docs/result.png)
