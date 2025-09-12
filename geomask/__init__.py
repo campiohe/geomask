@@ -3,8 +3,21 @@ from typing import Self, Union, TYPE_CHECKING
 import numpy as np
 from shapely import Polygon, MultiPolygon, intersection, Geometry, MultiPoint
 
+try:
+    from importlib.metadata import version
+
+    __version__ = version("geomask")
+except ImportError:
+    try:
+        from importlib_metadata import version
+
+        __version__ = version("geomask")
+    except ImportError:
+        __version__ = "unknown"
+
 if TYPE_CHECKING:
     import pandas as pd
+    import xarray as xr
 
 SpatialGeometry = Union[Polygon, MultiPolygon]
 
@@ -138,6 +151,34 @@ class GeoMask:
             return pd.DataFrame(columns=[x_col, y_col])
 
         return pd.DataFrame(coords, columns=[x_col, y_col])
+
+    def to_xarray(self, x_variable: str = "x", y_variable: str = "y") -> "xr.Dataset":
+        """Extract variables from the mask as an xarray Dataset.
+
+        Returns:
+            xarray Dataset containing coordinates as variables
+        Raises:
+            ImportError: If xarray is not available
+        """
+        try:
+            import xarray as xr
+        except ImportError:
+            raise ImportError(
+                "xarray is required for to_xarray(). Install it with: pip install xarray"
+            )
+        ds = self.to_dataframe(x_variable, y_variable).to_xarray()
+        ds.attrs.update(
+            {
+                "geomask_version": __version__,
+                "area": self.area,
+                "resolution": self.resolution,
+                "point_count": self.point_count,
+                "bounds": self.bounds,
+                "offset": self.offset,
+                "limit": self.limit,
+            }
+        )
+        return ds
 
     def filter_by_geometry(self, filter_geom: SpatialGeometry, **kwargs) -> Self:
         """Create a new GeoMask filtered by another geometry.

@@ -34,6 +34,7 @@ pytest = "^8.4.2"
 pytest-cov = "^7.0.0"
 pandas = "^2.3.2"
 ruff = "^0.13.0"
+xarray = "^2025.9.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
