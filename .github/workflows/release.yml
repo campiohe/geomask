@@ -1,0 +1,80 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v0.1.0, etc.
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run tests
+        run: poetry run pytest
+
+      - name: Extract version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            # First release
+            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+            echo "## Changes" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "Initial release of geomask v${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "### Features" >> $GITHUB_OUTPUT
+            echo "- A simple library for creating geometric masks from spatial data using regular grids" >> $GITHUB_OUTPUT
+            echo "- Support for Polygon and MultiPolygon geometries" >> $GITHUB_OUTPUT
+            echo "- Grid-based spatial masking operations" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+            echo "## Changes since $PREV_TAG" >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            git log --pretty=format:"- %s" $PREV_TAG..HEAD | head -20
+            echo "" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Release v${{ steps.get_version.outputs.VERSION }}"
+          body: ${{ steps.changelog.outputs.CHANGELOG }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

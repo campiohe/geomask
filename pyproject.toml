@@ -25,7 +25,6 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/campiohe/geomask"
 Repository = "https://github.com/campiohe/geomask"
-Documentation = "https://github.com/campiohe/geomask"
 Issues = "https://github.com/campiohe/geomask/issues"
 
 [tool.poetry]
