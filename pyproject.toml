@@ -1,6 +1,6 @@
 [project]
 name = "geomask"
-version = "0.1.0"
+version = "0.1.1"
 description = "A very simple lib for creating geometric masks from spatial data using regular grids"
 authors = [
     {name = "campiohe",email = "campiottihenrique@gmail.com"}
