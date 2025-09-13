@@ -377,5 +377,73 @@ class TestGeoMaskIntegration:
         assert len(filtered_mask) <= len(original_mask)
 
 
+class TestGeoMaskToXarray:
+    def test_to_xarray_default_variables(self):
+        poly = Polygon([(0, 0), (3, 0), (3, 3), (0, 3)])
+        mask = GeoMask(geom=poly, resolution=1.0)
+
+        try:
+            ds = mask.to_xarray()
+            assert "x" in ds.variables
+            assert "y" in ds.variables
+            assert "geomask_version" in ds.attrs
+            assert ds.attrs["area"] == mask.area
+            assert ds.attrs["resolution"] == mask.resolution
+            assert ds.attrs["point_count"] == mask.point_count
+            assert ds.attrs["bounds"] == mask.bounds
+            assert ds.attrs["offset"] == mask.offset
+            assert ds.attrs["limit"] == mask.limit
+        except ImportError:
+            pytest.skip("xarray not available")
+
+    def test_to_xarray_custom_variables(self):
+        poly = Polygon([(0, 0), (3, 0), (3, 3), (0, 3)])
+        mask = GeoMask(geom=poly, resolution=1.0)
+
+        try:
+            ds = mask.to_xarray(x_variable="longitude", y_variable="latitude")
+            assert "longitude" in ds.variables
+            assert "latitude" in ds.variables
+            assert "x" not in ds.variables
+            assert "y" not in ds.variables
+            coords = mask.to_coordinates()
+            if coords.size > 0:
+                assert len(ds.longitude) == len(coords)
+                assert len(ds.latitude) == len(coords)
+        except ImportError:
+            pytest.skip("xarray not available")
+
+    def test_to_xarray_empty_mask(self):
+        poly = Polygon([(0, 0), (0.01, 0), (0.01, 0.01), (0, 0.01)])
+        mask = GeoMask(geom=poly, resolution=10.0)
+
+        try:
+            ds = mask.to_xarray()
+            # Should work even with empty mask
+            assert "x" in ds.variables
+            assert "y" in ds.variables
+            assert ds.attrs["point_count"] == mask.point_count
+        except ImportError:
+            pytest.skip("xarray not available")
+
+    def test_to_xarray_import_error(self):
+        poly = Polygon([(0, 0), (3, 0), (3, 3), (0, 3)])
+        mask = GeoMask(geom=poly, resolution=1.0)
+
+        import unittest.mock
+
+        with unittest.mock.patch("builtins.__import__") as mock_import:
+
+            def side_effect(name, *args, **kwargs):
+                if name == "xarray":
+                    raise ImportError("No module named 'xarray'")
+                return unittest.mock.DEFAULT
+
+            mock_import.side_effect = side_effect
+
+            with pytest.raises(ImportError, match="xarray is required for to_xarray"):
+                mask.to_xarray()
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
