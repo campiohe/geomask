@@ -173,4 +173,9 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# End of https://www.toptal.com/developers/gitignore/api/python
+### Weather ###
+*.grib
+*.grib2
+*.grb
+*.nc
+*.grib*.idx

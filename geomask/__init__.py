@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Self, Union, TYPE_CHECKING
+from typing import Self, TYPE_CHECKING, Any
 import numpy as np
-from shapely import Polygon, MultiPolygon, intersection, Geometry, MultiPoint
+from shapely import Polygon, MultiPolygon, intersection, Geometry
 
 try:
     from importlib.metadata import version
@@ -19,21 +19,25 @@ if TYPE_CHECKING:
     import pandas as pd
     import xarray as xr
 
-SpatialGeometry = Union[Polygon, MultiPolygon]
+from .grid_types import get_grid_generator
+
+SpatialGeometry = Polygon | MultiPolygon
 
 
 @dataclass(slots=True)
 class GeoMask:
     """A geometric mask for spatial data processing.
 
-    This class creates a regular grid of points within a given geometry
-    and provides methods for spatial masking operations.
+    This class creates a grid of points within a given geometry using various
+    grid types and provides methods for spatial masking operations.
 
     Attributes:
         geom: The input spatial geometry (Polygon or MultiPolygon)
         resolution: Grid resolution for point generation
         offset: Optional offset for grid positioning
         limit: Optional limit on number of points
+        grid_type: Type of grid to generate (default: 'regular_ll')
+        grid_kwargs: Additional parameters for grid generation
         mask: The resulting geometric mask after intersection (computed automatically)
     """
 
@@ -41,6 +45,8 @@ class GeoMask:
     resolution: float
     offset: tuple[float, float] | None = None
     limit: int | None = None
+    grid_type: str = "regular_ll"
+    grid_kwargs: dict[str, Any] = field(default_factory=dict)
     mask: Geometry = field(init=False)
 
     def __post_init__(self) -> None:
@@ -66,27 +72,14 @@ class GeoMask:
                 actual_resolution = np.sqrt(self.geom.area / self.limit)
                 object.__setattr__(self, "resolution", actual_resolution)
 
-        xmin, ymin, xmax, ymax = self.geom.bounds
-
-        grid_bounds = (
-            np.floor(xmin / actual_resolution) * actual_resolution,
-            np.floor(ymin / actual_resolution) * actual_resolution,
-            np.ceil(xmax / actual_resolution) * actual_resolution,
-            np.ceil(ymax / actual_resolution) * actual_resolution,
+        grid_generator = get_grid_generator(
+            self.grid_type,
+            resolution=actual_resolution,
+            offset=self.offset,
+            **self.grid_kwargs,
         )
 
-        xcoords, ycoords = np.meshgrid(
-            np.arange(grid_bounds[0], grid_bounds[2], actual_resolution),
-            np.arange(grid_bounds[1], grid_bounds[3], actual_resolution),
-        )
-
-        if self.offset:
-            xoffset, yoffset = self.offset
-            xcoords += xoffset
-            ycoords += yoffset
-
-        mcoords = np.column_stack((xcoords.flatten(), ycoords.flatten()))
-        points = MultiPoint(mcoords)
+        points = grid_generator.generate_points(self.geom.bounds)
 
         return intersection(self.geom, points)
 
@@ -170,6 +163,7 @@ class GeoMask:
         ds.attrs.update(
             {
                 "geomask_version": __version__,
+                "grid_type": self.grid_type,
                 "area": self.area,
                 "resolution": self.resolution,
                 "point_count": self.point_count,
@@ -197,6 +191,9 @@ class GeoMask:
             resolution=self.resolution,
             offset=self.offset,
             limit=self.limit,
+            density=self.density,
+            grid_type=self.grid_type,
+            grid_kwargs=self.grid_kwargs,
         )
         object.__setattr__(new_instance, "mask", filtered_mask)
         return new_instance
@@ -332,6 +329,6 @@ class GeoMask:
 
     def __repr__(self) -> str:
         return (
-            f"GeoMask(area={self.area:.2f}, resolution={self.resolution:.3f}, "
-            f"points={self.point_count}, offset={self.offset}, limit={self.limit})"
+            f"GeoMask(area={self.area:.2f}, resolution={self.resolution:.3f}, points={self.point_count}, "
+            f"grid_type='{self.grid_type}', offset={self.offset}, limit={self.limit})"
         )
